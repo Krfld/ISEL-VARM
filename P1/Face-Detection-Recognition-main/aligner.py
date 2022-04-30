@@ -4,7 +4,7 @@ import cv2
 
 class Aligner:
     def __init__(self, desired_left_eye_position=(16, 24), desired_right_eye_position=(31, 24),
-                 desired_face_width=46, desired_face_height=56, expected_eye_portion=0.1, eye_scale_factor=1.2, eye_min_neighbors=3):
+                 desired_face_width=46, desired_face_height=56, expected_eye_portion=0.1, eye_scale_factor=1.2, eye_min_neighbors=3, face_scale_factor=1.1, face_min_neighbors=3):
         self.desired_left_eye_position = desired_left_eye_position
         self.desired_face_width = desired_face_width
         self.desired_face_height = desired_face_height
@@ -17,27 +17,30 @@ class Aligner:
         self.expected_eye_portion = expected_eye_portion
         self.eye_scale_factor = eye_scale_factor
         self.eye_min_neighbors = eye_min_neighbors
+        self.face_scale_factor = face_scale_factor
+        self.face_min_neighbors = face_min_neighbors
 
     def findFaces(self, image):
-        minSize = int((image.shape[0] + image.shape[1]) / 2 * 0.1)
-        faces = self.face_cascade.detectMultiScale(
-            image, scaleFactor=1.1, minNeighbors=3, minSize=[minSize, minSize])
+        return self.face_cascade.detectMultiScale(
+            image, self.eye_scale_factor, self.face_min_neighbors, minSize=[30, 30])
 
+    def cutFaces(self, image):
+        faces = self.face_cascade.detectMultiScale(
+            image, self.eye_scale_factor, self.face_min_neighbors, minSize=[30, 30])
         return ([(image[y:y+h, x:x+w], x, y) for (x, y, w, h) in faces])
 
     def findEyes(self, image):
-        minSize = int((image.shape[0] + image.shape[1]) / 2
-                      * self.expected_eye_portion)
-        return self.eye_cascade.detectMultiScale(image, scaleFactor=self.eye_scale_factor, minNeighbors=self.eye_min_neighbors, minSize=[minSize, minSize])
+        return self.eye_cascade.detectMultiScale(image, scaleFactor=self.eye_scale_factor, minNeighbors=self.eye_min_neighbors, minSize=[30, 30])
 
     def alignFace(self, image):
-        faces = self.findFaces(image)
+        faces = self.cutFaces(image)
         if (len(faces) < 1):
             return None
         face, x, y = faces[0]
         eyes = self.findEyes(face)
         if (len(eyes) < 2):
             return None
+        # print(len(eyes))
         x1, y1, w1, h1 = eyes[0]  # Left eye area
         x1 += x
         y1 += y
@@ -84,15 +87,13 @@ class Aligner:
         return output
 
     def alignObjectToFace(self, object, face, object_left_eye_center, object_right_eye_center):
-        faces = self.findFaces(face)
+        faces = self.cutFaces(face)
         if (len(faces) < 1):
-            print("No faces detected")
-            exit()
+            return None
         face_area, x, y = faces[0]
         eyes = self.findEyes(face_area)
         if (len(eyes) < 2):
-            print("No eyes detected")
-            exit()
+            return None
         x1, y1, w1, h1 = eyes[0]  # Left eye area
         x1 += x
         y1 += y
@@ -130,9 +131,10 @@ class Aligner:
 
         # Find eyes center
         eyes_center = ((object_left_eye_center[0] + object_right_eye_center[0]) // 2,
-                    (object_left_eye_center[1] + object_right_eye_center[1]) // 2)
+                       (object_left_eye_center[1] + object_right_eye_center[1]) // 2)
 
-        M = cv2.getRotationMatrix2D(eyes_center, angle_object - angle_face, scale_factor)  # Rotation matrix
+        M = cv2.getRotationMatrix2D(
+            eyes_center, angle_object - angle_face, scale_factor)  # Rotation matrix
 
         # Update the translation component of the rotation matrix
         tX = face.shape[1] * 0.5
@@ -144,4 +146,4 @@ class Aligner:
         # Apply the affine transformation
         (w, h) = (face.shape[1], face.shape[0])
         return cv2.warpAffine(object, M, (w, h),
-                                flags=cv2.INTER_CUBIC, borderValue=(30, 255, 13))
+                              flags=cv2.INTER_CUBIC, borderValue=(30, 255, 13))
