@@ -40,7 +40,7 @@ ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(
 
 ###
 
-img = cv.imread('left12.jpg')
+img = cv.imread('distorted.jpg')
 h,  w = img.shape[:2]
 newcameramtx, roi = cv.getOptimalNewCameraMatrix(mtx, dist, (w, h), 1, (w, h))
 

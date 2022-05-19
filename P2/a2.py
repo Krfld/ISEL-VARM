@@ -1,3 +1,5 @@
+from time import sleep
+from tkinter import N
 import cv2
 import numpy as np
 import pathlib
@@ -19,6 +21,7 @@ def calibrate_chessboard(dir_path, image_format, square_size, width, height):
     imgpoints = []  # 2d points in image plane.
 
     images = pathlib.Path(dir_path).glob(f'*.{image_format}')
+
     # Iterate through all images
     for fname in images:
         img = cv2.imread(str(fname))
@@ -35,6 +38,11 @@ def calibrate_chessboard(dir_path, image_format, square_size, width, height):
                 gray, corners, (11, 11), (-1, -1), criteria)
             imgpoints.append(corners2)
 
+            # # Draw and display the corners
+            # cv2.drawChessboardCorners(img, (width, height), corners2, ret)
+            # cv2.imshow('img', img)
+            # cv2.waitKey(10000)
+
     # Calibrate camera
     ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(
         objpoints, imgpoints, gray.shape[::-1], None, None)
@@ -47,6 +55,7 @@ def save_coefficients(mtx, dist, path):
     cv_file = cv2.FileStorage(path, cv2.FILE_STORAGE_WRITE)
     cv_file.write('K', mtx)
     cv_file.write('D', dist)
+
     # note you *release* you don't close() a FileStorage object
     cv_file.release()
 
@@ -67,10 +76,10 @@ def load_coefficients(path):
 
 def getDistortion():
     # Parameters
-    IMAGES_DIR = 'path_to_images'
-    IMAGES_FORMAT = '.jpg'
-    SQUARE_SIZE = 1.6
-    WIDTH = 6
+    IMAGES_DIR = 'images'
+    IMAGES_FORMAT = 'jpg'
+    SQUARE_SIZE = 2
+    WIDTH = 7
     HEIGHT = 9
 
     # Calibrate
@@ -89,10 +98,17 @@ def getDistortion():
 def undistort():
     # Load coefficients
     mtx, dist = load_coefficients('calibration_chessboard.yml')
-    original = cv2.imread('image.jpg')
-    dst = cv2.undistort(original, mtx, dist, None, None)
+    original = cv2.imread('images/distorted.jpg')
+
+    newcameramtx = None
+    # h,  w = original.shape[:2]
+    # newcameramtx, roi = cv2.getOptimalNewCameraMatrix(
+    #     mtx, dist, (w, h), 1, (w, h))
+
+    dst = cv2.undistort(original, mtx, dist, None, newcameramtx)
     cv2.imwrite('undist.jpg', dst)
 
 
 if __name__ == "__main__":
     getDistortion()
+    undistort()
