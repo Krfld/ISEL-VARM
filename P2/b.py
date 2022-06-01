@@ -2,6 +2,7 @@ from time import sleep
 import cv2
 from cv2 import aruco
 import numpy as np
+from a2 import load_coefficients
 
 
 def main():
@@ -10,6 +11,8 @@ def main():
         print("Cannot open camera")
         exit()
 
+    cameraMatrix, distCoeffs = load_coefficients(
+        'calibration_chessboard.yml')
     aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_250)
     parameters = aruco.DetectorParameters_create()
     while True:
@@ -26,7 +29,17 @@ def main():
 
         corners, ids, rejectedImgPoints = aruco.detectMarkers(
             gray, aruco_dict, parameters=parameters)
-        frame_markers = aruco.drawDetectedMarkers(frame.copy(), corners, ids)
+
+        frame_markers = frame.copy()
+        if ids != None:
+            rvecs, tvecs, _objPoints = aruco.estimatePoseSingleMarkers(
+                corners, 5, cameraMatrix, distCoeffs)
+
+            # for i in ids:
+            frame_markers = aruco.drawDetectedMarkers(
+                frame_markers, corners, ids)
+            # frame_markers = aruco.drawAxis(
+            # frame.copy(), cameraMatrix, distCoeffs, rvecs, tvecs, 5)
 
         # Display the resulting frame
         cv2.imshow('frame', frame_markers)
@@ -35,7 +48,7 @@ def main():
         if cv2.waitKey(1) == ord('q'):
             break
 
-        # sleep(1/5)
+        sleep(1/5)
 
     # When everything done, release the capture
     cap.release()
