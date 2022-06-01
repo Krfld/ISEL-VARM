@@ -31,15 +31,16 @@ def main():
             gray, aruco_dict, parameters=parameters)
 
         frame_markers = frame.copy()
-        if ids != None:
+        try:
             rvecs, tvecs, _objPoints = aruco.estimatePoseSingleMarkers(
                 corners, 5, cameraMatrix, distCoeffs)
 
-            # for i in ids:
             frame_markers = aruco.drawDetectedMarkers(
                 frame_markers, corners, ids)
-            # frame_markers = aruco.drawAxis(
-            # frame.copy(), cameraMatrix, distCoeffs, rvecs, tvecs, 5)
+            # for i in ids:
+            # frame_markers = aruco.drawAxis(frame.copy(), cameraMatrix, distCoeffs, rvecs, tvecs, 5)
+        except:
+            print('Error')
 
         # Display the resulting frame
         cv2.imshow('frame', frame_markers)
