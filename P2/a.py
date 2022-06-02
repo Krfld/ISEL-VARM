@@ -78,7 +78,7 @@ def getDistortion():
     # Parameters
     IMAGES_DIR = 'images'
     IMAGES_FORMAT = 'jpg'
-    SQUARE_SIZE = 1.5
+    SQUARE_SIZE = 2.7
     WIDTH = 6
     HEIGHT = 9
 
@@ -110,7 +110,7 @@ def undistort():
 
 
 def main():
-    SQUARE_SIZE = 1.5
+    SQUARE_SIZE = 2.7
     WIDTH = 6
     HEIGHT = 9
 
@@ -145,35 +145,42 @@ def main():
         # Our operations on the frame come here
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        # Find the chess board corners
-        ret, corners = cv2.findChessboardCorners(gray, (WIDTH, HEIGHT), None)
+        # Press 'p' tp calibrate
+        if cv2.waitKey(1) == ord('p'):
+            # Find the chess board corners
+            ret, corners = cv2.findChessboardCorners(
+                gray, (WIDTH, HEIGHT), None)
 
-        # If found, add object points, image points (after refining them)
-        if ret:
-            objpoints.append(objp)
+            # If found, add object points, image points (after refining them)
+            if ret:
+                objpoints.append(objp)
 
-            corners2 = cv2.cornerSubPix(
-                gray, corners, (11, 11), (-1, -1), criteria)
-            imgpoints.append(corners2)
+                corners2 = cv2.cornerSubPix(
+                    gray, corners, (11, 11), (-1, -1), criteria)
+                imgpoints.append(corners2)
 
-            # # Draw and display the corners
-            # cv2.drawChessboardCorners(img, (width, height), corners2, ret)
-            # cv2.imshow('img', img)
-            # cv2.waitKey(10000)
+                # # Draw and display the corners
+                # cv2.drawChessboardCorners(img, (width, height), corners2, ret)
+                # cv2.imshow('img', img)
+                # cv2.waitKey(10000)
 
-            # Calibrate camera
-            ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(
-                objpoints, imgpoints, gray.shape[::-1], None, None)
+                # Calibrate camera
+                ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(
+                    objpoints, imgpoints, gray.shape[::-1], None, None)
 
-            # Save coefficients into a file
-            save_coefficients(mtx, dist, "calibration_chessboard.yml")
+                # Save coefficients into a file
+                save_coefficients(mtx, dist, "calibration_chessboard.yml")
+
+                dst = cv2.undistort(gray, mtx, dist, None, None)
+                cv2.imwrite('undist.jpg', dst)
 
         # Display the resulting frame
         cv2.imshow('frame', gray)
+        # Press 'q' to exit
         if cv2.waitKey(1) == ord('q'):
             break
 
-        sleep(5)
+        # sleep(5)
 
     # When everything done, release the capture
     cap.release()
