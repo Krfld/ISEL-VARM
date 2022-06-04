@@ -6,7 +6,20 @@ from a import load_coefficients
 
 
 def main():
-    ARUCO_MARKER_SIZE = 5.5  # cm
+    virtual_objects = [
+        cv2.imread('./images/1.png'),
+        cv2.imread('./images/2.png'),
+        cv2.imread('./images/3.png'),
+        cv2.imread('./images/4.png'),
+        cv2.imread('./images/5.png'),
+        cv2.imread('./images/6.png'),
+        cv2.imread('./images/7.png'),
+        cv2.imread('./images/8.png'),
+        cv2.imread('./images/9.png'),
+        cv2.imread('./images/10.png'),
+        cv2.imread('./images/11.png'),
+        cv2.imread('./images/12.png'),
+    ]
 
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
@@ -32,18 +45,24 @@ def main():
         corners, ids, rejectedImgPoints = aruco.detectMarkers(
             gray, aruco_dict, parameters=parameters)
 
-        frame_markers = aruco.drawDetectedMarkers(
-            frame_markers, corners, ids)
-
         if ids is not None:
-            # Estimate pose for markers
-            rvecs, tvecs, objPoints = aruco.estimatePoseSingleMarkers(
-                corners, ARUCO_MARKER_SIZE, cameraMatrix, distCoeffs)
-
-            # Draw axis for each marker
             for i in range(len(ids)):
-                frame_markers = aruco.drawAxis(
-                    frame_markers, cameraMatrix, distCoeffs, rvecs[i], tvecs[i], ARUCO_MARKER_SIZE/2)
+                bbox = corners[i]
+                tl = bbox[0][0][0], bbox[0][0][1]
+                tr = bbox[0][1][0], bbox[0][1][1]
+                br = bbox[0][2][0], bbox[0][2][1]
+                bl = bbox[0][3][0], bbox[0][3][1]
+                obj = virtual_objects[ids[i][0] - 1]
+                h, w, c = obj.shape
+                pts1 = np.array([tl, tr, br, bl])
+                pts2 = np.float32([[0, 0], [w, 0], [w, h], [0, h]])
+                matrix, _ = cv2.findHomography(pts2, pts1)
+                imgOut = cv2.warpPerspective(
+                    obj, matrix, (frame_markers.shape[1], frame_markers.shape[0]))
+
+                # Keep real background:
+                cv2.fillConvexPoly(frame_markers, pts1.astype(int), (0, 0, 0))
+                frame_markers = frame_markers + imgOut
 
         # Display the resulting frame
         cv2.imshow('frame', frame_markers)
